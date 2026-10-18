@@ -15,7 +15,7 @@ It is a single self-contained HTML file. There is nothing to install, no server,
 
 ## Try it
 
-- **Online:** open the GitHub Pages version at `https://<your-username>.github.io/<repo-name>/`
+- **Online:** open the GitHub Pages version at `https://abhishek-chougule321.github.io/pe2detect/`
 - **Offline:** download `index.html` from the latest release (v1.1) and open it in Chrome, Edge or Firefox. It works without an internet connection.
 
 Files up to **100 MB** are supported, one file at a time.
