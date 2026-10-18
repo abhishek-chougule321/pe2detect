@@ -1,0 +1,21 @@
+# Test build output: compiled fixtures, downloaded third-party binaries, throwaway certificates
+tests/build/
+
+# Never commit binaries, keys or samples
+*.exe
+*.dll
+*.sys
+*.scr
+*.key
+*.pem
+*.pfx
+*.p12
+samples/
+malware/
+
+# Python and OS clutter
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
+Thumbs.db
