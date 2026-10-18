@@ -29,8 +29,9 @@ TSA="-TSA-certs $B/tsa.crt -TSA-key $B/tsa.key"
 FRESH="-certs $B/fresh.crt -key $B/fresh.key"
 OLD="-certs $B/expired.crt -key $B/expired.key"
 q() { osslsigncode sign "$@" >/dev/null; }
-# Claims to be Microsoft's svchost, signed with a 2-day-old self-signed cert, SHA-1
-q $FRESH -h sha1 -n "Windows Update Helper" -time $NOW $TSA -TSA-time $NOW -in $B/base_impersonation.exe -out $B/svc_update.exe
+# Claims to be from a (fictional) software vendor, but signed by someone else with a
+# 2-day-old self-signed certificate and SHA-1
+q $FRESH -h sha1 -n "Lumora Update Helper" -time $NOW $TSA -TSA-time $NOW -in $B/base_impersonation.exe -out $B/update_helper.exe
 # Consistent names, SHA-256 + timestamp, plus a nested SHA-1 signature
 q $FRESH -h sha256 -time $NOW $TSA -TSA-time $NOW -in $B/base_consistent.exe -out $B/tmp_signed.exe
 q -nest $FRESH -h sha1 -time $NOW -in $B/tmp_signed.exe -out $B/evilupdater.exe

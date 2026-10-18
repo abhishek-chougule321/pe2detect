@@ -40,6 +40,7 @@ python3 verify.py
 | ASCII and wide string counts | GNU `strings` |
 | Signed hash, certificate thumbprint and serial | signify |
 | Expected findings for each test file | Known contents of each fixture |
+| Brand-impersonation and Windows-system-file rules | Made-up signer data, checked directly |
 | Corrupted headers and signatures never crash the page | Browser error log |
 
 ## Test files
@@ -51,7 +52,7 @@ python3 verify.py
 | `strings.exe` | `fixtures/strings_fixture.c` | String rules, including wide strings |
 | `network.exe` | `fixtures/network_fixture.c` | URL and IP extraction, defanging, noise filtering |
 | `corroboration.exe` | `fixtures/corroboration_fixture.c` | Strings backing up capabilities |
-| `svc_update.exe` | `minimal.c` + `version_impersonation.rc`, signed | Impersonation of Microsoft and svchost.exe, self-signed, SHA-1, fresh certificate |
+| `update_helper.exe` | `minimal.c` + `version_impersonation.rc`, signed | Version info claiming a (fictional) vendor while signed by someone else, self-signed, SHA-1, fresh certificate, renamed file |
 | `evilupdater.exe` | `minimal.c` + `version_consistent.rc`, signed twice | Nested signatures, name consistency |
 | `expired_no_timestamp.exe` | signed with an expired certificate | Missing timestamp, expiry |
 | `outside_validity.exe` | timestamped after the certificate expired | Signing outside the validity window |

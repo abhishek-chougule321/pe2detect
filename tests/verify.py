@@ -76,7 +76,7 @@ EXPECTED = {
                               "Telegram bot API", "Tampers with Microsoft Defender", "Mining pool protocol"],
     "network.exe":           ["hxxp[://]203[.]0[.]113[.]50:8080/gate.php", "Raw IP host", "Links to a file download", "Possibly a version number"],
     "corroboration.exe":     ["Corroborated by strings"],
-    "svc_update.exe":        ["Suspicious signature", "Self-signed certificate", "claims to be from Microsoft", "svchost.exe", "outdated SHA-1"],
+    "update_helper.exe":     ["Suspicious signature", "Self-signed certificate", "outdated SHA-1", "does not match the CompanyName \"Lumora Software Inc.\"", "lumora_update.exe"],
     "evilupdater.exe":       ["nested SHA-1", "Self-signed certificate"],
     "expired_no_timestamp.exe": ["No timestamp", "has expired and there is no timestamp"],
     "outside_validity.exe":  ["when the certificate was not valid"],
@@ -103,6 +103,29 @@ async def check_findings(page):
             benign = await page.eval_on_selector("details.benign", "d => d.textContent")   # collapsed, so read all text
             check("network.exe: XML namespace URL set aside as routine", "schemas[.]microsoft[.]com" in benign)
         await back(page)
+
+
+async def check_signer_rules(page):
+    print("\nSigner rules tested directly (made-up data, no test binary)")
+    result = await page.evaluate("""() => {
+        const signedBy = org => ({ status: "signed", hashMatches: true, hidden: [], unknownUnauth: [], nested: [],
+            digest: { name: "SHA-256", weak: false }, timestamp: null, claimedSigningTime: null,
+            cert: { subject: { fields: { O: org, CN: org }, text: "CN=" + org + ", O=" + org, rawHex: "aa" }, issuer: { rawHex: "bb" },
+                    eku: null, policies: [], keyAlg: "RSA", keyBits: 2048,
+                    notBefore: new Date("2024-01-01"), notAfter: new Date("2027-01-01") } });
+        const red = (sig, ver, name) => assessSigner(sig, ver, name, { flag: null }, 0).red.map(r => r.strength + ": " + r.text);
+        return {
+            brand: red(signedBy("Some Signer LLC"), { CompanyName: "Adobe Inc.", ProductName: "Adobe Reader" }, "reader.exe"),
+            systemFile: red(signedBy("Some Signer LLC"), { CompanyName: "Some Signer LLC", OriginalFilename: "lsass.exe" }, "lsass.exe"),
+            fictional: red(signedBy("Some Signer LLC"), { CompanyName: "Lumora Software Inc." }, "update.exe"),
+        };
+    }""")
+    check("a known brand in the version info with a different signer is a strong finding",
+          any(r.startswith("strong") and "claims to be from Adobe" in r for r in result["brand"]), str(result["brand"]))
+    check("a Windows system file name with a non-Windows signer is a strong finding",
+          any(r.startswith("strong") and 'Windows file "lsass.exe"' in r for r in result["systemFile"]), str(result["systemFile"]))
+    check("an unknown company name that differs from the signer is only a weak finding",
+          result["fictional"] and all(r.startswith("weak") for r in result["fictional"]), str(result["fictional"]))
 
 async def check_signatures(page, files):
     print("\nAuthenticode parsing vs signify")
@@ -215,7 +238,7 @@ async def check_size_limit(page):
 async def check_wording_and_notes(page):
     print("\nWording and notes")
     found = set()
-    for name in ["imports-64.exe", "svc_update.exe", "network.exe", "packed-32.exe", "vcruntime140.dll"]:
+    for name in ["imports-64.exe", "update_helper.exe", "network.exe", "packed-32.exe", "vcruntime140.dll"]:
         f = BUILD / name
         if not f.exists():
             continue
@@ -256,10 +279,11 @@ async def main():
         await check_imports(page, pe_files + [f for f in [BUILD / "npp_installer.exe"] if f.exists()])
         await check_strings(page, [BUILD / n for n in ["strings.exe", "network.exe", "imports-64.exe"]])
         await check_findings(page)
-        signed = [BUILD / n for n in ["svc_update.exe", "evilupdater.exe", "expired_no_timestamp.exe", "outside_validity.exe",
+        await check_signer_rules(page)
+        signed = [BUILD / n for n in ["update_helper.exe", "evilupdater.exe", "expired_no_timestamp.exe", "outside_validity.exe",
                                       "vcruntime140.dll", "npp_installer.exe"] if (BUILD / n).exists()]
         await check_signatures(page, signed)
-        await check_fuzz(page, [BUILD / "imports-64.exe", BUILD / "svc_update.exe"])
+        await check_fuzz(page, [BUILD / "imports-64.exe", BUILD / "update_helper.exe"])
         await browser.close()
     passed = sum(results)
     print(f"\n{passed} of {len(results)} checks passed")
